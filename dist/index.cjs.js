@@ -109,7 +109,7 @@ function eEnum(data) {
     },
     $options(excludes = []) {
       return this.$map(
-        (item) => ({ label: item.label || `${item.code}`, value: item.code }),
+        (item) => ({ label: item.label || String(item.code), value: item.code }),
         excludes
       );
     }

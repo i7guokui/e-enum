@@ -71,20 +71,28 @@ type EnumCodeRes<O> = { [key: Key]: undefined | UnionValue<O[Keys<O>]> }
 
 type Enum<C, D, O> = EnumBuildIn<C, D, O> & EnumKeyRes<C, O> & EnumCodeRes<O>
 
-export type GetEnumCodeType<T> = T extends Enum<any, any, infer O>
-  ? O extends Record<Key, EnumData<infer C>>
-    ? C
-    : never
+export type GetEnumCodeType<T> = T extends Enum<infer C, any, any>
+  ? C
+  : never
+
+type GetCodeType<O> = O extends Record<Key, EnumData<infer C>>
+  ? C
+  : never
+
+type GetDataType<O> = O extends Record<Key, infer D>
+  ? D
   : never
 
 const buildInEnumKeys: (keyof EnumBuildIn<any, any, any>)[] = ['$list', '$map', '$options']
 const buildInBuildItemKeys: (keyof EnumItemBuild<any, any>)[] = ['$is', '$eq', '$in']
 
-export function eEnum<C, D extends EnumData<C>, const O extends Record<Key, D>>(
+export function eEnum<const O extends Record<Key, EnumData<Key>>>(
   data: O
-): Enum<C, D, O> {
-  const keyRes: EnumKeyRes<C, O> = {} as unknown as EnumKeyRes<C, O>
-  const codeRes: EnumCodeRes<O> = {} as unknown as EnumCodeRes<O>
+) {
+  type C = GetCodeType<O>
+  type D = GetDataType<O>
+  const keyRes: EnumKeyRes<C, O> = {} as EnumKeyRes<C, O>
+  const codeRes: EnumCodeRes<O> = {} as EnumCodeRes<O>
 
   for (const key in data) {
     if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -130,7 +138,7 @@ export function eEnum<C, D extends EnumData<C>, const O extends Record<Key, D>>(
         if (Object.prototype.hasOwnProperty.call(keyRes, key)) {
           const value = keyRes[key]
           if (!value.$exclude && !value.$in(excludesArr)) {
-            res.push(value)
+            res.push(value as EnumItem<C, D, O>)
           }
         }
       }
@@ -152,13 +160,13 @@ export function eEnum<C, D extends EnumData<C>, const O extends Record<Key, D>>(
     },
     $options(excludes = []) {
       return this.$map(
-        (item) => ({ label: item.label || `${item.code}`, value: item.code as GetEnumCodeType<O> }),
+        (item) => ({ label: item.label || String(item.code), value: item.code as GetEnumCodeType<O> }),
         excludes
       )
     }
   }
 
-  return assign(keyRes, codeRes, enumBuildIn)
+  return assign(keyRes, codeRes, enumBuildIn) as Enum<C, D, O>
 }
 
 export default eEnum

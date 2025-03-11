@@ -35,6 +35,8 @@ type EnumCodeRes<O> = {
     [key: Key]: undefined | UnionValue<O[Keys<O>]>;
 };
 type Enum<C, D, O> = EnumBuildIn<C, D, O> & EnumKeyRes<C, O> & EnumCodeRes<O>;
-export type GetEnumCodeType<T> = T extends Enum<any, any, infer O> ? O extends Record<Key, EnumData<infer C>> ? C : never : never;
-export declare function eEnum<C, D extends EnumData<C>, const O extends Record<Key, D>>(data: O): Enum<C, D, O>;
+export type GetEnumCodeType<T> = T extends Enum<infer C, any, any> ? C : never;
+type GetCodeType<O> = O extends Record<Key, EnumData<infer C>> ? C : never;
+type GetDataType<O> = O extends Record<Key, infer D> ? D : never;
+export declare function eEnum<const O extends Record<Key, EnumData<Key>>>(data: O): Enum<GetCodeType<O>, GetDataType<O>, O>;
 export default eEnum;
