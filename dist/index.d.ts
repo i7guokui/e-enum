@@ -24,7 +24,7 @@ type EnumBuildIn<C, D, O> = {
     $list(this: Enum<C, D, O>, excludes?: keyof O | (keyof O)[]): EnumItem<C, D, O>[];
     $map<R>(this: Enum<C, D, O>, fn: (item: EnumItem<C, D, O>) => R, excludes?: keyof O | (keyof O)[]): R[];
     $options(this: Enum<C, D, O>, excludes?: keyof O | (keyof O)[]): {
-        value: GetEnumCodeType<O>;
+        value: C;
         label: string;
     }[];
 };

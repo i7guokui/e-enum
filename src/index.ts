@@ -60,7 +60,7 @@ type EnumBuildIn<C, D, O> = {
   $options(
     this: Enum<C, D, O>,
     excludes?: keyof O | (keyof O)[]
-  ): { value: GetEnumCodeType<O>; label: string }[]
+  ): { value: C; label: string }[]
 }
 
 type EnumKeyRes<C, O> = {
@@ -160,7 +160,7 @@ export function eEnum<const O extends Record<Key, EnumData<Key>>>(
     },
     $options(excludes = []) {
       return this.$map(
-        (item) => ({ label: item.label || String(item.code), value: item.code as GetEnumCodeType<O> }),
+        (item) => ({ label: item.label || String(item.code), value: item.code as C }),
         excludes
       )
     }
