@@ -24,7 +24,7 @@ function includes(array, target) {
   }
   return false;
 }
-var buildInEnumKeys = ["$list", "$map", "$options"];
+var buildInEnumKeys = ["$list", "$map", "$options", "$valueType", "$keyType"];
 var buildInBuildItemKeys = ["$is", "$eq", "$in"];
 function eEnum(data) {
   var _a, _b, _c;
@@ -78,7 +78,7 @@ function eEnum(data) {
       const res = [];
       const list = this.$list(excludes);
       for (let i = 0; i < list.length; i++) {
-        res.push(fn(list[i]));
+        res.push(fn(list[i], i));
       }
       return res;
     },

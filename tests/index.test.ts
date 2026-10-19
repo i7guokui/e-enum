@@ -1,4 +1,4 @@
-import eEnum from '../src/index'
+import eEnum, { GetEnumCodeType, GetEnumItemType, GetEnumKeyType } from '../src/index'
 
 describe('eEnum', () => {
 
@@ -189,4 +189,145 @@ describe('eEnum', () => {
       expect(list[1].value).toBe('item3');
     });
   })
+
+  describe('type carriers', () => {
+    test('$valueType / $keyType narrow code and key unions', () => {
+      const gender = eEnum({
+        male: { code: 1, label: '男' },
+        female: { code: 2, label: '女' },
+      });
+
+      const code: typeof gender.$valueType = 1;
+      const key: typeof gender.$keyType = 'male';
+
+      // @ts-expect-error 3 is not a valid code
+      const badCode: typeof gender.$valueType = 3;
+      // @ts-expect-error 'unknown' is not a valid key
+      const badKey: typeof gender.$keyType = 'unknown';
+
+      expect([code, key]).toEqual([1, 'male']);
+      expect([badCode, badKey]).toEqual([3, 'unknown']);
+    });
+
+    test('exported helpers infer code / key / item types', () => {
+      const gender = eEnum({
+        male: { code: 1, label: '男', tagColor: 'red' },
+        female: { code: 2, label: '女', tagColor: 'blue' },
+      });
+
+      type Code = GetEnumCodeType<typeof gender>;
+      type Key = GetEnumKeyType<typeof gender>;
+      type Item = GetEnumItemType<typeof gender>;
+
+      const code: Code = 2;
+      const key: Key = 'female';
+      const tag: Item['tagColor'] = 'red';
+
+      // @ts-expect-error 9 is not a valid code
+      const badCode: Code = 9;
+      // @ts-expect-error 'cat' is not a valid key
+      const badKey: Key = 'cat';
+
+      expect([code, key, tag]).toEqual([2, 'female', 'red']);
+      expect([badCode, badKey]).toEqual([9, 'cat']);
+    });
+
+    test('$valueType / $keyType are type-only and never pollute runtime', () => {
+      const gender = eEnum({
+        male: { code: 1 },
+        female: { code: 2 },
+      });
+
+      expect('$valueType' in gender).toBe(false);
+      expect('$keyType' in gender).toBe(false);
+      expect(Object.keys(gender)).toEqual(['1', '2', 'male', 'female', '$list', '$map', '$options']);
+      expect(JSON.stringify(gender)).not.toContain('$valueType');
+    });
+
+    test('$valueType / $keyType are reserved keys', () => {
+      expect(() => eEnum({ $valueType: { code: 1 } })).toThrowError(
+        'The built-in property "$valueType" cannot be used!'
+      );
+      expect(() => eEnum({ $keyType: { code: 1 } })).toThrowError(
+        'The built-in property "$keyType" cannot be used!'
+      );
+    });
+  });
+
+  describe('type narrowing', () => {
+    const gender = eEnum({
+      male: { code: 1, label: '男', tagColor: 'red' },
+      female: { code: 2, label: '女', tagColor: 'blue' },
+    });
+
+    test('$is narrows the item type', () => {
+      const item = gender[1]!;
+
+      if (item.$is('male')) {
+        const tagColor: 'red' = item.tagColor;
+        expect(tagColor).toBe('red');
+      }
+
+      if (item.$is('female')) {
+        // @ts-expect-error narrowed to female, so tagColor is 'blue'
+        const tagColor: 'red' = item.tagColor;
+        expect(tagColor).toBe('blue');
+      }
+    });
+
+    test('$eq narrows the item type', () => {
+      const item = gender[1]!;
+
+      if (item.$eq(2)) {
+        const tagColor: 'blue' = item.tagColor;
+        expect(tagColor).toBe('blue');
+      }
+
+      if (item.$eq(1)) {
+        // @ts-expect-error narrowed to male, so tagColor is 'red'
+        const tagColor: 'blue' = item.tagColor;
+        expect(tagColor).toBe('red');
+      }
+    });
+
+    test('$in narrows the item type to the union of the given keys', () => {
+      const item = gender[1]!;
+
+      if (item.$in(['male', 'female'])) {
+        const tagColor: 'red' | 'blue' = item.tagColor;
+        expect(tagColor).toBe('red');
+      }
+
+      if (item.$in([])) {
+        // @ts-expect-error empty keys narrow the item to never
+        const tagColor: 'red' | 'blue' = item.tagColor;
+        expect(tagColor).toBeUndefined();
+      }
+    });
+
+    test('code lookup keeps item methods', () => {
+      expect(gender[1]?.$is('male')).toBe(true);
+      expect(gender[2]?.$eq(2)).toBe(true);
+      expect(gender[1]?.$in(['male'])).toBe(true);
+      expect(gender[3]).toBeUndefined();
+    });
+  });
+
+  describe('$map index', () => {
+    test('passes the index of each item', () => {
+      const data = {
+        item1: { code: 'item1', $sort: 2 },
+        item2: { code: 'item2', $sort: 1 },
+        item3: { code: 'item3', $sort: 3 },
+      };
+      const enumObject = eEnum(data);
+
+      const result = enumObject.$map((item, index) => {
+        const checkedIndex: number = index;
+        return `${checkedIndex}:${item.code}`;
+      });
+
+      expect(result).toEqual(['0:item2', '1:item1', '2:item3']);
+    });
+  });
 });
